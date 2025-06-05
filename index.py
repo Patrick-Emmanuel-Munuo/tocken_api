@@ -5,6 +5,7 @@ import math
 import binascii
 from Crypto.Cipher import DES
 import base64
+import random
 
 # Initialize Flask app and CORS
 app = Flask(__name__)
@@ -13,9 +14,7 @@ CORS(app)
 # Constants and globals
 token_class = 0
 token_sub_class = 0
-random = 7
-issue_date_time = datetime(2024, 7, 30, 8, 50, 30)
-base_date = datetime(1993, 1, 1, 0, 0, 0)
+base_date = datetime(2012, 1, 1, 0, 0, 0)
 
 vending_key_base64 = "M+eSQjQLvW2r+7Zz8RrHaAxVxYE="  # base64 encoded 20-byte key
 key_type = "01"
@@ -129,9 +128,12 @@ def build_64_bit_token_block(units):
         return dec_to_bin(token_sub_class, 4)
 
     def get_rnd_block():
-        return dec_to_bin(random, 4)
+        rnd = random.randint(0, 15)  # 4-bit random number (0 to 15)
+        return dec_to_bin(rnd, 4)
 
     def get_tid_block():
+        issue_date_time = datetime.now()
+        formatted_time = issue_date_time.strftime("%Y-%m-%d %H:%M:%S")
         minutes = int((issue_date_time - base_date).total_seconds() // 60)
         return dec_to_bin(minutes, 24)
 
@@ -169,6 +171,7 @@ def build_64_bit_token_block(units):
         "crc_block": crc_block,
         "token_64_bit_block": token_64_bit_block,
     }
+
 def encrypt(data: bytes, key: bytes) -> bytes:
     """Encrypt 8-byte data with 8-byte key using DES ECB."""
     if len(data) != 8 or len(key) != 8:
@@ -274,17 +277,26 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str, ver
 
 @app.route("/decrypt_token", methods=["GET"])
 def api_decrypt():
-    token_numbers = request.args.get("token")
-    token = token_numbers.replace("-", "")  # Remove dashes if present
-    #token_bin = bin(int(token, 10))[2:].zfill(64)  # Convert to binary string, pad to 66 bits
-    token_bin = bin(int(token))[2:]
-    decoding_key_bin = generate_decoder_key() #request.args.get("key")
-    try:
-        result = decrypt_and_parse_token(token_bin, decoding_key_bin, verbose=True)
-        return jsonify({"status": "success", "data": result})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 400
 
+    try:
+        token_numbers = request.args.get("token")
+        if not token_numbers:
+            return jsonify({"success": False, "message": "Token parameter is missing"}), 400
+        token = token_numbers.replace('-', '')
+        if len(token) != 20 or not all(c.isdigit() or c == '-' for c in token_numbers):
+            return jsonify({"success": False, "message": "Invalid token format"}), 400
+        token_bin = bin(int(token))[2:]
+        decoding_key_bin = generate_decoder_key() #request.args.get("key")
+        result = decrypt_and_parse_token(token_bin, decoding_key_bin, verbose=True)
+        return jsonify({
+            "success": True,
+            "message": "Token successfully decrypted and parsed.",
+            "data": result
+        }), 200
+    except ValueError as ve:
+        return jsonify({"success": False, "message": f"Validation error: {str(ve)}"}), 400
+    except Exception as e:
+        return jsonify({"success": False, "message": f"An error occurred: {str(e)}"}), 500
 
 @app.route("/generate_token", methods=["GET"])
 def api_encrypt():
@@ -301,9 +313,10 @@ def api_encrypt():
         # Encrypt and get utility token
         utility_token = process_token(token_64_bit_block, decoder_key_bin)
         return jsonify({"status": "success", "utility_token": utility_token})
+    except ValueError as ve:
+        return jsonify({"success": False, "message": f"Validation error: {str(ve)}"}), 400
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 400
-
+        return jsonify({"success": False, "message": f"An error occurred: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=1000)
