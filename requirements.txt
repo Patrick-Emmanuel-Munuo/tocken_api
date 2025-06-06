@@ -1,1 +1,3 @@
-nodemon --exec python index.py
+Flask
+Flask-Cors
+pycryptodome
