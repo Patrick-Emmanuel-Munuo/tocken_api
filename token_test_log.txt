@@ -1,0 +1,706 @@
+
+==================== Test started at 2025-06-07 22:12:12 ====================
+
+[2025-06-07 22:12:12] Token: 13307237497710877777 | Status: 400 | Time: 11.61 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:13] Token: 32752236241789223911 | Status: 400 | Time: 3.52 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:13] Token: 42857015311206765690 | Status: 400 | Time: 2.82 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:13] Token: 38725583102676748934 | Status: 400 | Time: 4.15 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:13] Token: 37177991662802863774 | Status: 400 | Time: 4.26 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:13] Token: 49891942647450273256 | Status: 400 | Time: 3.08 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:13] Token: 04503499916796382180 | Status: 400 | Time: 3.70 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:13] Token: 96572435144295224551 | Status: 400 | Time: 3.13 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:13] Token: 11712356060146206721 | Status: 400 | Time: 4.49 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:13] Token: 11513524108673670164 | Status: 400 | Time: 3.65 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:13] Token: 23345523699385843199 | Status: 400 | Time: 3.74 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:14] Token: 85209837001615781849 | Status: 400 | Time: 3.45 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:14] Token: 76105225440926714520 | Status: 400 | Time: 3.63 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:14] Token: 80574076300064808380 | Status: 400 | Time: 2.78 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:14] Token: 00252421296834263505 | Status: 400 | Time: 4.00 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:14] Token: 38409936163986637336 | Status: 400 | Time: 4.03 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:14] Token: 15776607626772727015 | Status: 400 | Time: 4.01 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:14] Token: 23504814154005802114 | Status: 400 | Time: 3.03 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:14] Token: 93232328014737391342 | Status: 400 | Time: 3.49 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:14] Token: 95726662926782317299 | Status: 400 | Time: 3.69 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:15] Token: 13498859776812509379 | Status: 400 | Time: 3.58 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:15] Token: 63125400981571090667 | Status: 400 | Time: 3.84 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:15] Token: 98553159616843700014 | Status: 400 | Time: 3.76 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:15] Token: 49401995023419866506 | Status: 400 | Time: 3.78 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:15] Token: 61517214414693805178 | Status: 400 | Time: 3.38 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:15] Token: 47640792890695114115 | Status: 400 | Time: 3.67 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:15] Token: 04400052376040120357 | Status: 400 | Time: 3.36 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:15] Token: 72677842473240576931 | Status: 400 | Time: 3.66 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:15] Token: 24338577450061230198 | Status: 400 | Time: 3.58 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:15] Token: 50989682328638370733 | Status: 400 | Time: 3.20 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:16] Token: 27297270719768346094 | Status: 400 | Time: 3.31 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:16] Token: 17874780092085553869 | Status: 400 | Time: 3.93 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:16] Token: 37985181337203918171 | Status: 400 | Time: 3.96 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:16] Token: 08873779253656446904 | Status: 400 | Time: 4.19 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:16] Token: 80893653441423888049 | Status: 400 | Time: 3.87 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:16] Token: 62917762387593823854 | Status: 400 | Time: 2.98 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:16] Token: 97422699673966447099 | Status: 400 | Time: 4.00 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:16] Token: 97229978091519075668 | Status: 400 | Time: 3.05 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:16] Token: 43962737738288292365 | Status: 400 | Time: 3.34 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:17] Token: 92391963945647287095 | Status: 400 | Time: 3.02 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:17] Token: 22647261893095420648 | Status: 400 | Time: 3.49 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+
+==================== Test started at 2025-06-07 22:12:25 ====================
+
+[2025-06-07 22:12:25] Token: 88472076401776951866 | Status: 400 | Time: 5.32 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:25] Token: 18968150025509237936 | Status: 400 | Time: 5.15 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:25] Token: 71768841155263849830 | Status: 400 | Time: 3.27 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:25] Token: 50998934794076554761 | Status: 400 | Time: 3.76 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:25] Token: 62754960652550714619 | Status: 400 | Time: 3.86 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:25] Token: 38614343670821499213 | Status: 400 | Time: 3.34 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:25] Token: 48109420864325878964 | Status: 400 | Time: 3.74 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:25] Token: 04720791773044137758 | Status: 400 | Time: 4.03 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:25] Token: 63251421917074096727 | Status: 400 | Time: 4.32 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:25] Token: 45432359831750098386 | Status: 400 | Time: 3.34 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:26] Token: 93489465532088384694 | Status: 400 | Time: 3.29 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:26] Token: 46002715825902834305 | Status: 400 | Time: 4.15 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:26] Token: 04219701516890392098 | Status: 400 | Time: 3.86 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:26] Token: 84844670149741111032 | Status: 400 | Time: 3.66 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:26] Token: 53261863384734749235 | Status: 400 | Time: 3.53 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:26] Token: 32854263861922354499 | Status: 400 | Time: 3.32 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:26] Token: 69879358659455327251 | Status: 400 | Time: 3.13 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:26] Token: 92253124900893666951 | Status: 400 | Time: 3.24 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:26] Token: 67898358422492088155 | Status: 400 | Time: 3.38 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:26] Token: 09201628371627304899 | Status: 400 | Time: 3.55 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:27] Token: 26437111001608983706 | Status: 400 | Time: 4.12 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:27] Token: 88781015954000742833 | Status: 400 | Time: 3.25 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:27] Token: 70219133914139126705 | Status: 400 | Time: 2.84 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:27] Token: 95854201553468086299 | Status: 400 | Time: 2.84 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:27] Token: 99033701882956962453 | Status: 400 | Time: 3.08 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:27] Token: 40428650440877912573 | Status: 400 | Time: 3.29 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:27] Token: 11238995293224302095 | Status: 400 | Time: 4.17 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:27] Token: 52848158854699896202 | Status: 400 | Time: 3.54 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:27] Token: 60548893536417385887 | Status: 400 | Time: 3.38 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:28] Token: 15632863889931393594 | Status: 400 | Time: 3.37 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:28] Token: 49859087154765376470 | Status: 400 | Time: 3.39 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:28] Token: 69413034763672382534 | Status: 400 | Time: 3.18 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:28] Token: 62358164276156475556 | Status: 400 | Time: 3.50 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:28] Token: 35907646236250532030 | Status: 400 | Time: 3.14 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:28] Token: 13226694573507525744 | Status: 400 | Time: 3.63 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:28] Token: 58794041617460252003 | Status: 400 | Time: 3.32 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:28] Token: 90450334296517267245 | Status: 400 | Time: 3.91 ms
+Response: {
+  "message": "Data is 9 must be exactly 8 bytes.",
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:28] Token: 56224605670935495989 | Status: 400 | Time: 2.97 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:28] Token: 29890401620491334151 | Status: 400 | Time: 3.50 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:29] Token: 50199202378577399102 | Status: 400 | Time: 3.71 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------
+[2025-06-07 22:12:29] Token: 46162558152101899326 | Status: 400 | Time: 3.55 ms
+Response: {
+  "message": {
+    "status": "Failed  parse token: CRC mismatch - invalid token data"
+  },
+  "success": false
+}
+
+--------------------------------------------------------------------------------

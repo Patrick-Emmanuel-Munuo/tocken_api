@@ -140,7 +140,6 @@ def decrypt(data: bytes, key: bytes):
     :param key: 16 or 24 bytes key
     :return: dict with success bool and message (decrypted bytes or error)
     """
-
     if len(data) != 8:
         return {
             "success": False,
@@ -200,6 +199,9 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
                 "message": trans_result["message"]
                 }
         original_64_bit = trans_result["message"]
+        original_64_bit = original_64_bit[:64]
+        if len(original_64_bit) != 64:
+            raise ValueError("Token block must be exactly 64 bits after transposition and class bits removal.")
         encrypted_bytes = bin_str_to_bytes(original_64_bit)
         enc_result = decrypt(encrypted_bytes, key_bytes)
         if not enc_result["success"]:

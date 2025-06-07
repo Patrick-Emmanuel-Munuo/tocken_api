@@ -8,7 +8,6 @@ LOG_FILE = "token_test_log.txt"
 SUMMARY_EVERY = 50  # print summary every N requests
 DELAY_SECONDS = 0.1  # delay between requests
 
-
 def generate_random_20_digit_token():
     return ''.join(str(random.randint(0, 9)) for _ in range(20))
 
