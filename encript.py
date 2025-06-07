@@ -3,9 +3,11 @@ from flask_cors import CORS
 from datetime import datetime, timedelta
 import math
 import binascii
-from Crypto.Cipher import DES
 import base64
 import random
+from Crypto.Cipher import DES3
+from Crypto.Util.Padding import pad, unpad
+
 
 # Initialize Flask app and CORS
 app = Flask(__name__)
@@ -16,11 +18,21 @@ token_class = 0
 token_sub_class = 0
 base_date = datetime(2012, 1, 1, 0, 0, 0)
 
-key_type = "01"
-supply_group_code = "1234"
-tariff_index = "01"
-key_revision_number = "00"
-decoder_reference_number = "1234567890"  # Decoder reference number (DRN)
+
+
+"""
+For 16 bytes (128 bits) key:
+
+key_type	8	supports up to 255
+supply_group_code	16	supports up to 65535
+tariff_index	8	supports up to 255
+key_revision_number	8	supports up to 255
+decoder_reference_number (DRN)	64	use 64 bits (max ~1.8e19)
+Total	128	Perfect for 16 bytes
+"""
+
+
+
 
 
 def dec_to_bin(decimal, length):
@@ -44,27 +56,35 @@ def bytes_to_bin_str(b):
     """Convert bytes to binary string."""
     return ''.join(f'{byte:08b}' for byte in b)
 
-#(key_type, supply_group_code, tariff_index, key_revision_number, decoder_reference_number)
 def generate_decoder_key():
     try:
-        """Generate binary string for decoder key based on inputs."""
+        # Input values (example)
+        key_type = 21
+        supply_group_code = 12345
+        tariff_index = 3
+        key_revision_number = 0
+        decoder_reference_number = 1234567890
+        secret_key = "12345"  # 16 hex chars = 64 bits
         def convert(number_str, bit_length):
             number_int = int(number_str)
             return format(number_int, f'0{bit_length}b')
-        key_type_bin = convert(key_type, 4)
-        supply_group_bin = convert(supply_group_code, 16)
-        tariff_index_bin = convert(tariff_index, 4)
-        key_revision_bin = convert(key_revision_number, 8)
-        drn_bin = convert(decoder_reference_number, 32)
+        key_type_bin = convert(key_type, 8)  # Key type is 8 bits
+        supply_group_bin = convert(supply_group_code, 16) # Supply group code is 16 bits
+        tariff_index_bin = convert(tariff_index, 8) # Tariff index is 8 bits
+        key_revision_bin = convert(key_revision_number, 8) # Key revision number is 8 bits
+        # Decoder reference number (DRN) is 64 bits
+        drn_bin = convert(decoder_reference_number, 64) # 64 bits (max ~1.8e19)v
+        secret_key_bin = convert(secret_key, 24)       # 24 bits
+        # Combine all parts into a 128-bit binary string
 
-        data_block_bin = key_type_bin + supply_group_bin + tariff_index_bin + key_revision_bin + drn_bin
+        data_block_bin = key_type_bin + supply_group_bin + tariff_index_bin + key_revision_bin + drn_bin + secret_key_bin
 
-        if len(data_block_bin) != 64:
+        if len(data_block_bin) != 128:
             raise ValueError(f"Generated decoder key is not 64 bits: got {len(data_block_bin)} bits")
-
+        key_128_bin = data_block_bin # + data_block_bin
         return {
             "success": True,
-            "message": data_block_bin
+            "message": key_128_bin
         }
     except Exception as e:
         return {
@@ -131,6 +151,68 @@ def build_string(*args):
     """Concatenate strings."""
     return ''.join(args)
 
+def encrypt(data: bytes, key: bytes):
+    """
+    Encrypt exactly 8 bytes of data using 3DES (ECB mode, no padding).
+    :param data: exactly 8 bytes
+    :param key: 16 or 24 bytes key
+    :return: dict with success bool and message (encrypted bytes or error)
+    """
+    if len(data) != 8:
+        return {
+            "success": False,
+            "message": f"Data is {len(data)} must be exactly 8 bytes."
+        }
+    if len(key) not in (16, 24):
+        return {
+            "success": False,
+            "message": f"Key length is {len(key)} bytes. Key must be either 16 or 24 bytes for 3DES."
+        }
+    try:
+        key = DES3.adjust_key_parity(key)
+        cipher = DES3.new(key, DES3.MODE_ECB)
+        encrypted = cipher.encrypt(data)  # no padding because data must be 8 bytes exactly
+        return {
+            "success": True,
+            "message": encrypted
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Encryption failed: {str(e)}"
+        }
+
+def decrypt(data: bytes, key: bytes):
+    """
+    Decrypt exactly 8 bytes of data using 3DES (ECB mode, no padding).
+    :param data: exactly 8 bytes encrypted data
+    :param key: 16 or 24 bytes key
+    :return: dict with success bool and message (decrypted bytes or error)
+    """
+    if len(data) != 8:
+        return {
+            "success": False,
+            "message": "Data must be exactly 8 bytes."
+        }
+    if len(key) not in (16, 24):
+        return {
+            "success": False,
+            "message": "Key must be either 16 or 24 bytes for 3DES."
+        }
+    try:
+        key = DES3.adjust_key_parity(key)
+        cipher = DES3.new(key, DES3.MODE_ECB)
+        decrypted = cipher.decrypt(data)  # no unpadding, data size fixed to 8 bytes
+        return {
+            "success": True,
+            "message": decrypted
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Decryption failed: {str(e)}"
+        }
+
 def build_64_bit_token_block(units):
     """Build 64-bit token block."""
     def get_class_block():
@@ -162,8 +244,9 @@ def build_64_bit_token_block(units):
     exponent = mantissa_result["message"]["exponent"]
     mantissa = mantissa_result["message"]["mantissa"]
     amount_block = get_amount_block(exponent, mantissa)
-    initial_50_bit_block = build_string(subclass, rnd_block, tid_block, amount_block)
-
+    initial_50_bit_block = build_string(cls,subclass, rnd_block, tid_block, amount_block)
+    # crcBlock = getCRCBlock(buildString(cls,subclass,rndBlock,tidBlock,amountBlock));
+    # token64BitBlock = buildString(subclass,rndBlock,tidBlock,amountBlock,crcBlock);
     # Calculate CRC for the 50-bit block
     hex_str = bin_to_hex(initial_50_bit_block)
     hex_str = hex_str.zfill(14)  # Pad to 56 bits (14 hex characters)
@@ -172,7 +255,7 @@ def build_64_bit_token_block(units):
     if not crc_result["success"]:
         raise Exception(crc_result["message"])
     crc_block = crc_result["message"]
-    token_64_bit_block = build_string(initial_50_bit_block, crc_block)
+    token_64_bit_block = build_string(subclass, rnd_block, tid_block, amount_block, crc_block)
     return {
         "exponent": exponent,
         "mantissa": mantissa,
@@ -183,9 +266,25 @@ def build_64_bit_token_block(units):
         "tid_block": tid_block,
         "crc_block": crc_block,
         "token_64_bit_block": token_64_bit_block,
+        #"token_66_bit_block": final_66_bit_token,
     }
 
-def encrypt(data: bytes, key: bytes):
+def insert_and_transposition_class_bits(encrypted_token_block: str, token_class: str) -> str:
+    # Prepend token_class bits to the encrypted token block
+    with_class_bits = token_class + encrypted_token_block
+    # Convert strings to lists for easy manipulation
+    token_class_bits = list(token_class)
+    token_block_bits = list(with_class_bits)
+    length = len(with_class_bits)
+    # Perform the bit swaps (transposition)
+    token_block_bits[length - 1 - 65] = token_block_bits[length - 1 - 28]
+    token_block_bits[length - 1 - 64] = token_block_bits[length - 1 - 27]
+    token_block_bits[length - 1 - 28] = token_class_bits[0]
+    token_block_bits[length - 1 - 27] = token_class_bits[1]
+    # Join bits back into a string and return
+    return "".join(token_block_bits)
+
+def encrypt_old(data: bytes, key: bytes):
     try:
         """Encrypt 8-byte data with 8-byte key using DES ECB."""
         if len(data) != 8 or len(key) != 8:
@@ -222,7 +321,10 @@ def process_token(token_block_bin: str, decoding_key_bin: str):
         if not enc_result["success"]:
             return {"success": False, "message": enc_result["message"]}
         encrypted_bin_str = bytes_to_bin_str(enc_result["message"])
-        token = convert_to_token_number(encrypted_bin_str)
+        cls = dec_to_bin(token_class, 2)
+        final_66_bit_token = insert_and_transposition_class_bits(encrypted_bin_str, cls)
+    
+        token = convert_to_token_number(final_66_bit_token)
         return {
             "success": True,
             "message": token
