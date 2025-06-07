@@ -281,29 +281,36 @@ def api_decrypt():
         token_numbers = request.args.get("token")
         if not token_numbers:
             return jsonify({"success": False, "message": "Token parameter is missing"}), 400
+        
+        # Remove dashes and validate format
         token = token_numbers.replace('-', '')
-        if len(token) != 20 or not all(c.isdigit() or c == '-' for c in token_numbers):
-            return jsonify({"success": False, "message": "Invalid token format"}), 400
+        if len(token) != 20 or not token.isdigit():
+            return jsonify({"success": False, "message": "Invalid token format. Must be 20 digits (dashes allowed)."}), 400
+        
+        # Convert token to binary string with 66 bits
         token_bin = bin(int(token))[2:].zfill(66)
+        
+        # Generate decoding key
         decoder_key_result = generate_decoder_key()
         if not decoder_key_result["success"]:
             return jsonify({"success": False, "message": decoder_key_result["message"]}), 500
+        
         decoding_key_bin = decoder_key_result["message"]
         key_bytes = bin_str_to_bytes(decoding_key_bin)
+        
         if len(key_bytes) != 16:
-            return {"success": False, "message": "Decoding key is not 8 bytes"}
+            return jsonify({"success": False, "message": "Decoding key length invalid (expected 16 bytes)."}), 500
+
+        # Decrypt and parse token
         result = decrypt_and_parse_token(token_bin, decoding_key_bin)
         if not result["success"]:
-            return jsonify({
-                "success": False, 
-                "message": result["message"]
-                }), 400
+            return jsonify({"success": False, "message": result["message"]}), 400
         token_info = result["message"]
         return jsonify({
             "success": True,
             "message": {
                 **token_info,
-                "status": "Token successfully decrypted and parsed.",
+                "status": "Token successfully decrypted and parsed."
             }
         }), 200
     except ValueError as ve:
@@ -314,7 +321,7 @@ def api_decrypt():
     except Exception as e:
         return jsonify({
             "success": False,
-            "message": f"api_decrypt An error occurred: {str(e)}"
+            "message": f"api_decrypt An unexpected error occurred: {str(e)}"
         }), 500
 if __name__ == "__main__":
     app.run(debug = True, port = 1010)
