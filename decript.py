@@ -7,6 +7,8 @@ import base64
 import random
 from Crypto.Cipher import DES3
 from Crypto.Util.Padding import pad, unpad
+import math
+
 
 # Initialize Flask app and CORS
 app = Flask(__name__)
@@ -105,17 +107,16 @@ def calculate_crc16(data: bytes, poly=0x1021, init_crc=0xFFFF) -> dict:
         }
 
 def decode_units(exponent, mantissa):
-    """Reconstructs unit value from exponent and mantissa using the same logic
-    as in get_mantissa."""
+    """
+    Reconstructs the original units value from the exponent and mantissa.
+    Assumes encoding was done using:
+        amount = rhs_sum + mantissa * (10 ** exponent)
+        units = amount / 10
+    """
     try:
-        import math
-
-        if exponent == 0:
-            amount = mantissa
-        else:
-            # Rebuild the right-hand-side sum just like in get_mantissa
-            rhs_sum = sum(int(math.pow(2, 14) * math.pow(10, i - 1)) for i in range(1, exponent + 1))
-            amount = mantissa * (10 ** exponent) + rhs_sum
+        # Use float sum to avoid truncation errors
+        rhs_sum = sum(int(math.pow(2, 14) * math.pow(10, i - 1)) for i in range(1, exponent + 1))
+        amount = mantissa * (10 ** exponent) + rhs_sum
         # Convert amount back to float units (divide by 10)
         units = round(amount / 10.0, 2)
         return {
@@ -172,6 +173,7 @@ def parse_token_block(token_64_bit_block: str, verbose=False):
     tid_block = token_64_bit_block[8:32]
     amount_exponent = token_64_bit_block[32:34]
     amount_mantissa = token_64_bit_block[34:48]
+
     crc_block = token_64_bit_block[48:64]
     subclass_val = int(subclass, 2)
     rnd_val = int(rnd_block, 2)
@@ -213,9 +215,6 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
     """Decrypt encrypted token bin string with key, then parse the decrypted token block."""
     key_bytes = bin_str_to_bytes(decoding_key_bin)
     original_64_bit = transposition_and_remove_class_bits(encrypted_token_bin)
-    print(f"Original 66-bit : {encrypted_token_bin} length {len(encrypted_token_bin)}")
-    print(f"original_64_bit : {original_64_bit} lenth {len(original_64_bit)}")
-
     encrypted_bytes = bin_str_to_bytes(original_64_bit)
     enc_result = decrypt(encrypted_bytes, key_bytes)
     if not enc_result["success"]:
