@@ -17,7 +17,7 @@ CORS(app)
 # Constants and globals
 token_class = 0
 token_sub_class = 0
-base_date = datetime(2022, 1, 1, 0, 0, 0)#.strftime("%Y-%m-%d %H:%M:%S")
+base_date = datetime(2012, 1, 1, 0, 0, 0)
 #025-06-07 15:28:00
 key_type = "01"
 supply_group_code = "1234"
@@ -207,14 +207,16 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
     if not units_result["success"]:
         raise Exception(units_result["message"])
     units = units_result["message"]
-    token_expired_date = base_date
+    token_expired_date = issue_time + timedelta(days=365)
+    time_now =  datetime.now()
+    
     result = {
         "subclass": subclass_val,
         "random": rnd_val,
         "token_identifier_minutes": tid_minutes,
         "token_issue_datetime": issue_time.strftime("%Y-%m-%d %H:%M:%S"),
-        "base_date":base_date,
-        "token_expired_date":token_expired_date,
+        "base_date":base_date.strftime("%Y-%m-%d %H:%M:%S"),
+        "token_expired_date":token_expired_date.strftime("%Y-%m-%d %H:%M:%S"),
         "amount_exponent": exponent,
         "amount_mantissa": mantissa,
         "units": units,
@@ -234,9 +236,8 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
     if crc_calc_bin != crc_in_token_bin:
         raise ValueError("CRC mismatch - invalid token data")
     
-    # Additional validations (optional)
-    time_now =  datetime.now()
-    token_issue_time = datetime.strptime(result["token_issue_datetime"], "%Y-%m-%d %H:%M:%S")
+
+    token_issue_time = issue_time #datetime.strptime(issue_time, "%Y-%m-%d %H:%M:%S")
     # Check if the token is older than 1 year
     if time_now - token_issue_time > timedelta(days=365):
         raise ValueError("Token expired")
@@ -250,8 +251,10 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
  except Exception as e:
      return {
          "success": False,
-         "message": f"Failed to decode units: {str(e)}"
+         "message": {
+                "error": f"Failed to decrypt and parse token: {str(e)}"
          }
+        }
 
 @app.route("/decrypt_token", methods=["GET"])
 def api_decrypt():
@@ -274,7 +277,7 @@ def api_decrypt():
         return jsonify({
             "success": True,
             "message": {
-                #**result["message"] ,
+                **result["message"] ,
                 "status": "Token successfully decrypted and parsed.",
             }
         }), 200

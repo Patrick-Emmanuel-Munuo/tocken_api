@@ -16,7 +16,7 @@ CORS(app)
 # Constants and globals
 token_class = 0
 token_sub_class = 0
-base_date = datetime(2022, 1, 1, 0, 0, 0).strftime("%Y-%m-%d %H:%M:%S")
+base_date = datetime(2012, 1, 1, 0, 0, 0) #.strftime("%Y-%m-%d %H:%M:%S")
 #025-06-07 15:28:00
 """
 For 16 bytes (128 bits) key:
@@ -184,7 +184,7 @@ def encrypt(data: bytes, key: bytes):
 def build_64_bit_token_block(units):
     """Build 64-bit token block."""
     try:
-        issue_date =  (datetime.now()+ timedelta(days=367)).strftime("%Y-%m-%d %H:%M:%S")
+        issue_date =  datetime.now()
         def get_class_block():
             return dec_to_bin(token_class, 2)
 
@@ -196,9 +196,9 @@ def build_64_bit_token_block(units):
             return dec_to_bin(rnd, 4)
         
         def get_tid_block():
-            issued_date = datetime.strptime(issue_date, "%Y-%m-%d %H:%M:%S")
-            base_date_time = datetime.strptime(base_date, "%Y-%m-%d %H:%M:%S")
-            minutes = int((issued_date - base_date_time).total_seconds() // 60)
+            #issued_date = datetime.strptime(issue_date, "%Y-%m-%d %H:%M:%S")
+            #base_date_time = datetime.strptime(base_date, "%Y-%m-%d %H:%M:%S")
+            minutes = int((issue_date - base_date).total_seconds() // 60)
             return dec_to_bin(minutes, 24)
         
         def get_amount_block(exponent, mantissa):
@@ -224,6 +224,7 @@ def build_64_bit_token_block(units):
             return {"success": False, "message": crc_result["message"]}
         crc_block = crc_result["message"]
         token_64_bit_block = build_string(subclass, rnd_block, tid_block, amount_block, crc_block)
+        expired_datetime = issue_date + timedelta(days=365)
         return {
             "success": True,
             "message": {
@@ -232,11 +233,10 @@ def build_64_bit_token_block(units):
                 "amount_block": amount_block,
                 "units": float(units),
                 "cls": cls,
-                "base_date":base_date,
-                #"subclass": subclass_val,
-                #"random": rnd_val,
-                #"token_identifier_minutes": tid_minutes,
-                "token_issue_datetime": issue_date,
+                "token_identifier_minutes": tid_minutes,
+                "issue_datetime": issue_date.strftime("%Y-%m-%d %H:%M:%S"),
+                "expired_datetime": expired_datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                "base_date": base_date.strftime("%Y-%m-%d %H:%M:%S"),
                 "subclass": subclass,
                 "rnd_block": rnd_block,
                 "tid_block": tid_block,
