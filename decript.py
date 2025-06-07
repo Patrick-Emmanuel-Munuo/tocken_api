@@ -17,7 +17,7 @@ CORS(app)
 # Constants and globals
 token_class = 0
 token_sub_class = 0
-base_date = datetime(2012, 1, 1, 0, 0, 0)
+base_date = datetime(2025, 5, 5, 0, 0, 0)
 #025-06-07 15:28:00
 key_type = "01"
 supply_group_code = "1234"
@@ -165,95 +165,114 @@ def decrypt(data: bytes, key: bytes):
             "message": f"Decryption failed: {str(e)}"
         }
    
-def transposition_and_remove_class_bits(token_number_binary: str) -> str:
-    block_bits = list(token_number_binary)
-    length = len(token_number_binary)
-    
-    # Restore original bits positions
-    block_bits[length - 1 - 28] = block_bits[0]
-    block_bits[length - 1 - 27] = block_bits[1]
-    
-    # Remove the first two bits (class bits)
-    restored_block = "".join(block_bits)[2:]
-    return restored_block
+def transposition_and_remove_class_bits(token_number_binary: str):
+    try:
+        block_bits = list(token_number_binary)
+        length = len(block_bits)
+        # Validate the input length
+        if length < 66:
+            return {
+                "success": False,
+                "message": "Token binary must be at least 66 bits long to reverse transposition."
+            }
+        # Restore original bits positions
+        block_bits[0] = block_bits[length - 1 - 28]
+        block_bits[1] = block_bits[length - 1 - 27]
+        # Remove the first two bits (class bits)
+        restored_block = "".join(block_bits)[2:]
+        return {
+            "success": True,
+            "message": restored_block
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Error in transposition and class bits removal: {str(e)}"
+        }
 
 def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
- try:
-    """Decrypt encrypted token bin string with key, then parse the decrypted token block."""
-    key_bytes = bin_str_to_bytes(decoding_key_bin)
-    original_64_bit = transposition_and_remove_class_bits(encrypted_token_bin)
-    encrypted_bytes = bin_str_to_bytes(original_64_bit)
-    enc_result = decrypt(encrypted_bytes, key_bytes)
-    if not enc_result["success"]:
-        return {"success": False, "message": enc_result["message"]}
-    decrypted_bin = bytes_to_bin_str(enc_result["message"])
-    """Parse a 64-bit token block and extract fields."""
-    if len(decrypted_bin) != 64:
-        raise ValueError("Token block must be exactly 64 bits.")
-    subclass = decrypted_bin[0:4]
-    rnd_block = decrypted_bin[4:8]
-    tid_block = decrypted_bin[8:32]
-    amount_exponent = decrypted_bin[32:34]
-    amount_mantissa = decrypted_bin[34:48]
-    crc_block = decrypted_bin[48:64]
-    subclass_val = int(subclass, 2)
-    rnd_val = int(rnd_block, 2)
-    tid_minutes = int(tid_block, 2)
-    exponent = int(amount_exponent, 2)
-    mantissa = int(amount_mantissa, 2)
-    crc_val = int(crc_block, 2)
-    issue_time = base_date + timedelta(minutes=tid_minutes)
-    units_result = decode_units(exponent, mantissa)
-    if not units_result["success"]:
-        raise Exception(units_result["message"])
-    units = units_result["message"]
-    token_expired_date = issue_time + timedelta(days=365)
-    time_now =  datetime.now()
-    
-    result = {
-        "subclass": subclass_val,
-        "random": rnd_val,
-        "token_identifier_minutes": tid_minutes,
-        "token_issue_datetime": issue_time.strftime("%Y-%m-%d %H:%M:%S"),
-        "base_date":base_date.strftime("%Y-%m-%d %H:%M:%S"),
-        "token_expired_date":token_expired_date.strftime("%Y-%m-%d %H:%M:%S"),
-        "amount_exponent": exponent,
-        "amount_mantissa": mantissa,
-        "units": units,
-        "crc": crc_val,
-    }
-    # Recalculate CRC on first 48 bits (everything except last 16 bits)
-    data_bin = decrypted_bin[:48]
-    data_hex = bin_to_hex(data_bin).zfill(14)  # 48 bits = 12 hex chars
-    data_bytes = hex_to_byte_array(data_hex)
+    try:
+        key_bytes = bin_str_to_bytes(decoding_key_bin)
+        trans_result = transposition_and_remove_class_bits(encrypted_token_bin)
+        if not trans_result["success"]:
+            return {
+                "success": False,
+                "message": trans_result["message"]
+                }
+        original_64_bit = trans_result["message"]
+        encrypted_bytes = bin_str_to_bytes(original_64_bit)
+        enc_result = decrypt(encrypted_bytes, key_bytes)
+        if not enc_result["success"]:
+            return {"success": False, "message": enc_result["message"]}
+        
+        decrypted_bin = bytes_to_bin_str(enc_result["message"])
+        if len(decrypted_bin) != 64:
+            raise ValueError("Token block must be exactly 64 bits.")
+        
+        subclass = decrypted_bin[0:4]
+        rnd_block = decrypted_bin[4:8]
+        tid_block = decrypted_bin[8:32]
+        amount_exponent = decrypted_bin[32:34]
+        amount_mantissa = decrypted_bin[34:48]
+        crc_block = decrypted_bin[48:64]
 
-    # Calculate CRC16 on the data bytes
-    crc_result = calculate_crc16(data_bytes)
-    if not crc_result["success"]:
-        raise Exception(crc_result["message"])
-    crc_calc_bin = crc_result["message"].zfill(16)
-    crc_in_token_bin = decrypted_bin[48:64].zfill(16)
-    if crc_calc_bin != crc_in_token_bin:
-        raise ValueError("CRC mismatch - invalid token data")
-    
+        subclass_val = int(subclass, 2)
+        rnd_val = int(rnd_block, 2)
+        tid_minutes = int(tid_block, 2)
+        exponent = int(amount_exponent, 2)
+        mantissa = int(amount_mantissa, 2)
+        crc_val = int(crc_block, 2)
 
-    token_issue_time = issue_time #datetime.strptime(issue_time, "%Y-%m-%d %H:%M:%S")
-    # Check if the token is older than 1 year
-    if time_now - token_issue_time > timedelta(days=365):
-        raise ValueError("Token expired")
-    # Check if token is before base date or too far in the future
-    if token_issue_time < base_date or token_issue_time > time_now + timedelta(days=1):
-        raise ValueError("Change meter base date")
-    return {
-        "success": True,
-        "message": result
+        # Set base date and compute time-related values
+        issue_time = base_date + timedelta(minutes=tid_minutes)
+        token_expired_date = issue_time + timedelta(days=365)
+        time_now = datetime.now()
+
+        # Units decoding
+        units_result = decode_units(exponent, mantissa)
+        if not units_result["success"]:
+            raise Exception(units_result["message"])
+        units = units_result["message"]
+
+        # CRC validation
+        data_bin = decrypted_bin[:48]
+        data_hex = bin_to_hex(data_bin).zfill(14)
+        data_bytes = hex_to_byte_array(data_hex)
+        crc_result = calculate_crc16(data_bytes)
+        if not crc_result["success"]:
+            raise Exception(crc_result["message"])
+        crc_calc_bin = crc_result["message"].zfill(16)
+        crc_in_token_bin = decrypted_bin[48:64].zfill(16)
+        if crc_calc_bin != crc_in_token_bin:
+            raise ValueError("CRC mismatch - invalid token data")
+
+        # Validation checks
+        if time_now - issue_time > timedelta(days=365):
+            raise ValueError("Token expired")
+        if issue_time < base_date or issue_time > time_now + timedelta(days=1):
+            raise ValueError("Change meter base date")
+        result = {
+            "subclass": subclass_val,
+            "random": rnd_val,
+            "identifier_minutes": tid_minutes,
+            "issue_datetime": issue_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "base_date": base_date.strftime("%Y-%m-%d %H:%M:%S"),
+            "expired_date": token_expired_date.strftime("%Y-%m-%d %H:%M:%S"),
+            "amount_exponent": exponent,
+            "amount_mantissa": mantissa,
+            "units": float(units),
+            "crc": crc_val,
         }
- except Exception as e:
-     return {
-         "success": False,
-         "message": {
-                "error": f"Failed to decrypt and parse token: {str(e)}"
-         }
+        return {
+            "success": True,
+            "message": result
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": {
+                "status": f"Failed  parse token: {str(e)}"
+            }
         }
 
 @app.route("/decrypt_token", methods=["GET"])
@@ -274,10 +293,16 @@ def api_decrypt():
         if len(key_bytes) != 16:
             return {"success": False, "message": "Decoding key is not 8 bytes"}
         result = decrypt_and_parse_token(token_bin, decoding_key_bin)
+        if not result["success"]:
+            return jsonify({
+                "success": False, 
+                "message": result["message"]
+                }), 400
+        token_info = result["message"]
         return jsonify({
             "success": True,
             "message": {
-                **result["message"] ,
+                **token_info,
                 "status": "Token successfully decrypted and parsed.",
             }
         }), 200

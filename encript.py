@@ -16,7 +16,7 @@ CORS(app)
 # Constants and globals
 token_class = 0
 token_sub_class = 0
-base_date = datetime(2012, 1, 1, 0, 0, 0) #.strftime("%Y-%m-%d %H:%M:%S")
+base_date = datetime(2025, 5, 5, 0, 0, 0)
 #025-06-07 15:28:00
 """
 For 16 bytes (128 bits) key:
@@ -233,7 +233,6 @@ def build_64_bit_token_block(units):
                 "amount_block": amount_block,
                 "units": float(units),
                 "cls": cls,
-                "token_identifier_minutes": tid_minutes,
                 "issue_datetime": issue_date.strftime("%Y-%m-%d %H:%M:%S"),
                 "expired_datetime": expired_datetime.strftime("%Y-%m-%d %H:%M:%S"),
                 "base_date": base_date.strftime("%Y-%m-%d %H:%M:%S"),
@@ -241,6 +240,7 @@ def build_64_bit_token_block(units):
                 "rnd_block": rnd_block,
                 "tid_block": tid_block,
                 "crc_block": crc_block,
+                "crc_block": bin_to_hex(crc_block),
                 "token_64_bit_block": token_64_bit_block
             }
         }
@@ -250,20 +250,34 @@ def build_64_bit_token_block(units):
             "message": f"Error in build_64_bit_token_block: {str(e)}"
         }
 
-def insert_and_transposition_class_bits(encrypted_token_block: str, token_class: str) -> str:
-    # Prepend token_class bits to the encrypted token block
-    with_class_bits = token_class + encrypted_token_block
-    # Convert strings to lists for easy manipulation
-    token_class_bits = list(token_class)
-    token_block_bits = list(with_class_bits)
-    length = len(with_class_bits)
-    # Perform the bit swaps (transposition)
-    token_block_bits[length - 1 - 65] = token_block_bits[length - 1 - 28]
-    token_block_bits[length - 1 - 64] = token_block_bits[length - 1 - 27]
-    token_block_bits[length - 1 - 28] = token_class_bits[0]
-    token_block_bits[length - 1 - 27] = token_class_bits[1]
-    # Join bits back into a string and return
-    return "".join(token_block_bits)
+def insert_and_transposition_class_bits(encrypted_token_block: str, token_class: str):
+    try:
+        # Prepend token_class bits to the encrypted token block
+        with_class_bits = token_class + encrypted_token_block
+        # Convert strings to lists for manipulation
+        token_class_bits = list(token_class)
+        token_block_bits = list(with_class_bits)
+        length = len(with_class_bits)
+
+        if length < 66:
+            return {
+                "success": False,
+                "message": "Input token block must be at least 66 bits after prepending class bits"
+            }
+        # Perform the bit swaps (transposition)
+        token_block_bits[length - 1 - 65] = token_block_bits[length - 1 - 28]
+        token_block_bits[length - 1 - 64] = token_block_bits[length - 1 - 27]
+        token_block_bits[length - 1 - 28] = token_class_bits[0]
+        token_block_bits[length - 1 - 27] = token_class_bits[1]
+        return {
+            "success": True,
+            "message": "".join(token_block_bits)
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Transposition error: {str(e)}"
+        }
 
 def process_token(token_block_bin: str, decoding_key_bin: str):
     try:
@@ -274,7 +288,12 @@ def process_token(token_block_bin: str, decoding_key_bin: str):
             return {"success": False, "message": enc_result["message"]}
         encrypted_bin_str = bytes_to_bin_str(enc_result["message"])
         cls = dec_to_bin(token_class, 2)
-        final_66_bit_token = insert_and_transposition_class_bits(encrypted_bin_str, cls)
+        
+        # Insert class bits and perform transposition
+        trans_result = insert_and_transposition_class_bits(encrypted_bin_str, cls)
+        if not trans_result["success"]:
+            return {"success": False, "message": trans_result["message"]}
+        final_66_bit_token = trans_result["message"]
         token_number = int(final_66_bit_token, 2)
         token_number_str = str(token_number).zfill(20)
         token_parts = [token_number_str[i:i + 4] for i in range(0, len(token_number_str), 4)]
