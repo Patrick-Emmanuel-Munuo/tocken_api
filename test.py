@@ -4,8 +4,8 @@ import time
 from datetime import datetime
 
 API_URL = "http://127.0.0.1:1010/decrypt_token"
-LOG_FILE = "token_test_log.txt"
-SUMMARY_EVERY = 50  # print summary every N requests
+LOG_FILE = "new_token_test_log.txt"
+SUMMARY_EVERY = 100  # print summary every 100 requests
 DELAY_SECONDS = 0.1  # delay between requests
 
 def generate_random_20_digit_token():
@@ -35,6 +35,9 @@ def test_api_call(token):
 def run_infinite_test():
     total_tests = 0
     total_time = 0
+    pass_count = 0
+    fail_count = 0
+
     with open(LOG_FILE, "a") as log_file:
         log_file.write(f"\n{'='*20} Test started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {'='*20}\n\n")
         print("Starting infinite token testing... Press Ctrl+C to stop.")
@@ -47,12 +50,27 @@ def run_infinite_test():
                 total_tests += 1
                 total_time += elapsed_ms
 
+                # Count pass/fail
+                if status_code == 200:
+                    pass_count += 1
+                else:
+                    fail_count += 1
+
                 if total_tests % SUMMARY_EVERY == 0:
                     avg_time = total_time / total_tests
-                    summary = f"[{datetime.now().strftime('%H:%M:%S')}] Tests run: {total_tests}, Avg response time: {avg_time:.2f} ms"
+                    summary_status = "PASS" if fail_count == 0 else "FAIL"
+                    summary = (
+                        f"[{datetime.now().strftime('%H:%M:%S')}] Tests run: {total_tests}, "
+                        f"Passed: {pass_count}, Failed: {fail_count}, "
+                        f"Avg response time: {avg_time:.2f} ms, Status: {summary_status}"
+                    )
                     print(summary)
                     log_file.write(summary + "\n" + ("=" * 80) + "\n")
                     log_file.flush()
+
+                    # reset pass/fail counts for the next batch
+                    pass_count = 0
+                    fail_count = 0
 
                 time.sleep(DELAY_SECONDS)
         except KeyboardInterrupt:

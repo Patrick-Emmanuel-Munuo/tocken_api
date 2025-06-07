@@ -7,7 +7,7 @@ import base64
 import random
 from Crypto.Cipher import DES3
 from Crypto.Util.Padding import pad, unpad
-
+import struct
 
 # Initialize Flask app and CORS
 app = Flask(__name__)
@@ -17,7 +17,8 @@ CORS(app)
 token_class = 0
 token_sub_class = 0
 base_date = datetime(2025, 5, 5, 0, 0, 0)
-#025-06-07 15:28:00
+
+
 """
 For 16 bytes (128 bits) key:
 
@@ -86,7 +87,7 @@ def generate_decoder_key():
             "message": f"Decoder key generation failed: {str(e)}"
         }
 
-def get_mantissa(units):
+def encode_mantissa(units):
     try:
         """
         Custom 16-bit representation:
@@ -97,6 +98,7 @@ def get_mantissa(units):
         # Maintain 2-decimal accuracy
         # Try exponents from 0 to 15 to find smallest valid exponent
         # Convert to integer amount (multiply by 100)
+        max_amount = 4095.0  # Maximum value units
         amount = int(round(units * 100))
         if amount <= 16383:
             exponent = 0
@@ -110,8 +112,12 @@ def get_mantissa(units):
         if exponent == 0:
             mantissa = amount
         else:
-            rhs_sum = sum(int(math.pow(2,14) * math.pow(10, (i - 1))) for i in range(1, exponent + 1))
-            mantissa =  int((amount - rhs_sum) / (math.pow(10, exponent)))  # Round to nearest integer
+            mantissa =  int((amount) / (math.pow(10, exponent)))
+        if mantissa > max_amount:
+            return {
+                "success": False,
+                "message": "units value too large to be represented."
+        }
         return {
             "success": True,
             "message": {
@@ -123,6 +129,28 @@ def get_mantissa(units):
         return {
             "success": False,
             "message": f"Mantissa calculation failed: {str(e)}"
+        }
+
+def decode_mantissa(packed_bin):
+    try:
+        if len(packed_bin) != 16:
+            raise ValueError(f"Input binary string length must be 16 bits, got {len(packed_bin)}")
+        # First 4 bits = exponent, last 12 bits = mantissa
+        exponent_bin = packed_bin[:4]
+        mantissa_bin = packed_bin[4:]
+        exponent = int(exponent_bin, 2)
+        mantissa = int(mantissa_bin, 2)
+        # Decode the value
+        amount = mantissa * math.pow(10, exponent)
+        units = round(amount / 100.0, 2)
+        return {
+            "success": True,
+            "message": units
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Decoding failed: {str(e)}"
         }
 
 def calculate_crc16(data: bytes, poly=0x1021, init_crc=0xFFFF) -> dict:
@@ -196,8 +224,6 @@ def build_64_bit_token_block(units):
             return dec_to_bin(rnd, 4)
         
         def get_tid_block():
-            #issued_date = datetime.strptime(issue_date, "%Y-%m-%d %H:%M:%S")
-            #base_date_time = datetime.strptime(base_date, "%Y-%m-%d %H:%M:%S")
             minutes = int((issue_date - base_date).total_seconds() // 60)
             return dec_to_bin(minutes, 24)
         
@@ -208,18 +234,21 @@ def build_64_bit_token_block(units):
         subclass = get_subclass_block()
         rnd_block = get_rnd_block()
         tid_block = get_tid_block()
-        mantissa_result = get_mantissa(units)
+
+        mantissa_result = encode_mantissa(units)
         if not mantissa_result["success"]:
-            return {"success": False, "message": mantissa_result["message"]}
+           raise ValueError(mantissa_result["message"]) 
+            #return {"success": False, "message": mantissa_result["message"]}
         exponent = mantissa_result["message"]["exponent"]
         mantissa = mantissa_result["message"]["mantissa"]
-        amount_block = get_amount_block(exponent, mantissa)
+        amount_block = get_amount_block(exponent, mantissa)#[:16]
         initial_50_bit_block = build_string(cls, subclass, rnd_block, tid_block, amount_block)
         # CRC Calculation
         hex_str = bin_to_hex(initial_50_bit_block)
         hex_str = hex_str.zfill(14)  # Pad to 56 bits (14 hex characters)
         byte_array = hex_to_byte_array(hex_str)
         crc_result = calculate_crc16(byte_array)
+        #print(f"calculated CRC: {crc_result['message']}")
         if not crc_result["success"]:
             return {"success": False, "message": crc_result["message"]}
         crc_block = crc_result["message"]
@@ -231,7 +260,9 @@ def build_64_bit_token_block(units):
                 "exponent": exponent,
                 "mantissa": mantissa,
                 "amount_block": amount_block,
+                "amount_block_length": len(amount_block),
                 "units": float(units),
+                "units_decode": float(decode_mantissa(amount_block)["message"]),
                 "cls": cls,
                 "issue_datetime": issue_date.strftime("%Y-%m-%d %H:%M:%S"),
                 "expired_datetime": expired_datetime.strftime("%Y-%m-%d %H:%M:%S"),
@@ -294,6 +325,7 @@ def process_token(token_block_bin: str, decoding_key_bin: str):
         if not trans_result["success"]:
             return {"success": False, "message": trans_result["message"]}
         final_66_bit_token = trans_result["message"]
+        print(f"Final 66-bit token: {final_66_bit_token}")
         token_number = int(final_66_bit_token, 2)
         token_number_str = str(token_number).zfill(20)
         token_parts = [token_number_str[i:i + 4] for i in range(0, len(token_number_str), 4)]

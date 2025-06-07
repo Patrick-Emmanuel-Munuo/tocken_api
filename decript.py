@@ -110,15 +110,12 @@ def decode_units(exponent, mantissa):
     """
     Reconstructs the original units value from the exponent and mantissa.
     Assumes encoding was done using:
-        amount = rhs_sum + mantissa * (10 ** exponent)
+        amount =  mantissa * (10 ** exponent)
         units = amount / 100
     """
     try:
-        # Use float sum to avoid truncation errors
-        rhs_sum = sum(int(math.pow(2, 14) * math.pow(10, i - 1)) for i in range(1, exponent + 1))
-        amount = mantissa * (10 ** exponent) + rhs_sum
-        # Convert amount back to float units (divide by 100)
-        units = round(amount / 100, 2)
+        amount = mantissa * math.pow(10, exponent)
+        units = round(amount / 100.0, 2)
         return {
             "success": True,
             "message": units
@@ -164,7 +161,7 @@ def decrypt(data: bytes, key: bytes):
             "message": f"Decryption failed: {str(e)}"
         }
    
-def transposition_and_remove_class_bits(token_number_binary: str):
+def transposition_and_remove_class_bits_old(token_number_binary: str):
     try:
         block_bits = list(token_number_binary)
         length = len(block_bits)
@@ -175,13 +172,59 @@ def transposition_and_remove_class_bits(token_number_binary: str):
                 "message": "Token binary must be at least 66 bits long to reverse transposition."
             }
         # Restore original bits positions
-        block_bits[0] = block_bits[length - 1 - 28]
-        block_bits[1] = block_bits[length - 1 - 27]
-        # Remove the first two bits (class bits)
-        restored_block = "".join(block_bits)[2:]
+        # Save bits that were swapped in the original function
+        pos_65 = length - 1 - 65
+        pos_64 = length - 1 - 64
+        pos_28 = length - 1 - 28
+        pos_27 = length - 1 - 27
+        # Reverse the transposition:
+        # Put original bits back at pos_28 and pos_27 (which currently hold token_class bits)
+        block_bits[pos_28] = saved_65
+        block_bits[pos_27] = saved_64
+
+        # Extract the token class bits (which were inserted at the front)
+        token_class_bits = block_bits[0:2]
+
+        # Remove the token class bits from the front to get original encrypted token block
+        restored_block = block_bits[2:]
         return {
             "success": True,
             "message": restored_block
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"Error in transposition and class bits removal: {str(e)}"
+        }
+
+def transposition_and_remove_class_bits(token_number_binary: str):
+    try:
+        block_bits = list(token_number_binary)
+        length = len(block_bits)
+        if length < 66:
+            return {
+                "success": False,
+                "message": "Token binary must be at least 66 bits long to reverse transposition."
+            }
+        pos_65 = length - 1 - 65
+        pos_64 = length - 1 - 64
+        pos_28 = length - 1 - 28
+        pos_27 = length - 1 - 27
+        # Save the bits at pos_65 and pos_64 (which were overwritten originally)
+        saved_65 = block_bits[pos_65]
+        saved_64 = block_bits[pos_64]
+        # Reverse the transposition:
+        # Put original bits back at pos_28 and pos_27 (which currently hold token_class bits)
+        block_bits[pos_28] = saved_65
+        block_bits[pos_27] = saved_64
+        # Extract the token class bits (which were inserted at the front)
+        token_class_bits = block_bits[0:2]
+        # Remove the token class bits from the front to get original encrypted token block
+        restored_block = block_bits[2:]
+        return {
+            "success": True,
+            "message": "".join(restored_block),
+            "class": "".join(token_class_bits)
         }
     except Exception as e:
         return {
@@ -244,6 +287,9 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
             raise Exception(crc_result["message"])
         crc_calc_bin = crc_result["message"].zfill(16)
         crc_in_token_bin = decrypted_bin[48:64].zfill(16)
+        #print(f"CRC in token : {crc_in_token_bin}")
+        #print(f"calculated CRC: {crc_calc_bin}")
+
         if crc_calc_bin != crc_in_token_bin:
             raise ValueError("CRC mismatch - invalid token data")
 
@@ -290,7 +336,6 @@ def api_decrypt():
         
         # Convert token to binary string with 66 bits
         token_bin = bin(int(token))[2:].zfill(66)
-        
         # Generate decoding key
         decoder_key_result = generate_decoder_key()
         if not decoder_key_result["success"]:
