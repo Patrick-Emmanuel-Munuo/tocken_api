@@ -111,14 +111,14 @@ def decode_units(exponent, mantissa):
     Reconstructs the original units value from the exponent and mantissa.
     Assumes encoding was done using:
         amount = rhs_sum + mantissa * (10 ** exponent)
-        units = amount / 10
+        units = amount / 100
     """
     try:
         # Use float sum to avoid truncation errors
         rhs_sum = sum(int(math.pow(2, 14) * math.pow(10, i - 1)) for i in range(1, exponent + 1))
         amount = mantissa * (10 ** exponent) + rhs_sum
-        # Convert amount back to float units (divide by 10)
-        units = round(amount / 10.0, 2)
+        # Convert amount back to float units (divide by 100)
+        units = round(amount / 100, 2)
         return {
             "success": True,
             "message": units
@@ -140,6 +140,7 @@ def decrypt(data: bytes, key: bytes):
     :param key: 16 or 24 bytes key
     :return: dict with success bool and message (decrypted bytes or error)
     """
+
     if len(data) != 8:
         return {
             "success": False,
@@ -164,17 +165,37 @@ def decrypt(data: bytes, key: bytes):
             "message": f"Decryption failed: {str(e)}"
         }
    
-def parse_token_block(token_64_bit_block: str, verbose=False):
-    """Parse a 64-bit token block and extract fields."""
-    if len(token_64_bit_block) != 64:
-        raise ValueError("Token block must be exactly 64 bits.")
-    subclass = token_64_bit_block[0:4]
-    rnd_block = token_64_bit_block[4:8]
-    tid_block = token_64_bit_block[8:32]
-    amount_exponent = token_64_bit_block[32:34]
-    amount_mantissa = token_64_bit_block[34:48]
+def transposition_and_remove_class_bits(token_number_binary: str) -> str:
+    block_bits = list(token_number_binary)
+    length = len(token_number_binary)
+    
+    # Restore original bits positions
+    block_bits[length - 1 - 28] = block_bits[0]
+    block_bits[length - 1 - 27] = block_bits[1]
+    
+    # Remove the first two bits (class bits)
+    restored_block = "".join(block_bits)[2:]
+    return restored_block
 
-    crc_block = token_64_bit_block[48:64]
+def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
+ try:
+    """Decrypt encrypted token bin string with key, then parse the decrypted token block."""
+    key_bytes = bin_str_to_bytes(decoding_key_bin)
+    original_64_bit = transposition_and_remove_class_bits(encrypted_token_bin)
+    encrypted_bytes = bin_str_to_bytes(original_64_bit)
+    enc_result = decrypt(encrypted_bytes, key_bytes)
+    if not enc_result["success"]:
+        return {"success": False, "message": enc_result["message"]}
+    decrypted_bin = bytes_to_bin_str(enc_result["message"])
+    """Parse a 64-bit token block and extract fields."""
+    if len(decrypted_bin) != 64:
+        raise ValueError("Token block must be exactly 64 bits.")
+    subclass = decrypted_bin[0:4]
+    rnd_block = decrypted_bin[4:8]
+    tid_block = decrypted_bin[8:32]
+    amount_exponent = decrypted_bin[32:34]
+    amount_mantissa = decrypted_bin[34:48]
+    crc_block = decrypted_bin[48:64]
     subclass_val = int(subclass, 2)
     rnd_val = int(rnd_block, 2)
     tid_minutes = int(tid_block, 2)
@@ -182,7 +203,6 @@ def parse_token_block(token_64_bit_block: str, verbose=False):
     mantissa = int(amount_mantissa, 2)
     crc_val = int(crc_block, 2)
     issue_time = base_date + timedelta(minutes=tid_minutes)
-
     units_result = decode_units(exponent, mantissa)
     if not units_result["success"]:
         raise Exception(units_result["message"])
@@ -197,30 +217,6 @@ def parse_token_block(token_64_bit_block: str, verbose=False):
         "units": units,
         "crc": crc_val,
     }
-    return result
-
-def transposition_and_remove_class_bits(token_number_binary: str) -> str:
-    block_bits = list(token_number_binary)
-    length = len(token_number_binary)
-    
-    # Restore original bits positions
-    block_bits[length - 1 - 28] = block_bits[0]
-    block_bits[length - 1 - 27] = block_bits[1]
-    
-    # Remove the first two bits (class bits)
-    restored_block = "".join(block_bits)[2:]
-    return restored_block
-
-def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
-    """Decrypt encrypted token bin string with key, then parse the decrypted token block."""
-    key_bytes = bin_str_to_bytes(decoding_key_bin)
-    original_64_bit = transposition_and_remove_class_bits(encrypted_token_bin)
-    encrypted_bytes = bin_str_to_bytes(original_64_bit)
-    enc_result = decrypt(encrypted_bytes, key_bytes)
-    if not enc_result["success"]:
-        return {"success": False, "message": enc_result["message"]}
-    decrypted_bin = bytes_to_bin_str(enc_result["message"])
-    parsed = parse_token_block(decrypted_bin)
     # Recalculate CRC on first 48 bits (everything except last 16 bits)
     data_bin = decrypted_bin[:48]
     data_hex = bin_to_hex(data_bin).zfill(14)  # 48 bits = 12 hex chars
@@ -237,12 +233,19 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
         raise ValueError("CRC mismatch - invalid token data")
     # Additional validations (optional)
     now = datetime.utcnow()
-    token_issue_time = datetime.strptime(parsed["token_issue_datetime"], "%Y-%m-%d %H:%M:%S")
+    token_issue_time = datetime.strptime(result["token_issue_datetime"], "%Y-%m-%d %H:%M:%S")
     if token_issue_time < base_date or token_issue_time > now + timedelta(days=1):
         raise ValueError("Token issue date/time is out of valid range")
 
-    return parsed
-
+    return {
+        "success": True,
+        "message": result
+        }
+ except Exception as e:
+     return {
+         "success": False,
+         "message": f"Failed to decode units: {str(e)}"
+         }
 @app.route("/decrypt_token", methods=["GET"])
 def api_decrypt():
     try:
@@ -264,7 +267,7 @@ def api_decrypt():
         return jsonify({
             "success": True,
             "message": {
-                "data": result,
+                **result["message"] ,
                 "status": "Token successfully decrypted and parsed.",
             }
         }), 200

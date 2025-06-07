@@ -16,10 +16,8 @@ CORS(app)
 # Constants and globals
 token_class = 0
 token_sub_class = 0
-base_date = datetime(2012, 1, 1, 0, 0, 0)
-
-
-
+base_date = datetime(2022, 1, 1, 0, 0, 0).strftime("%Y-%m-%d %H:%M:%S")
+#025-06-07 15:28:00
 """
 For 16 bytes (128 bits) key:
 
@@ -94,12 +92,12 @@ def get_mantissa(units):
         Custom 16-bit representation:
         - 4-bit exponent (0–15) = power of 10
         - 12-bit mantissa (0–4095)
-        - 4-decimal precision using units * 100
+        - 2-decimal precision using units * 100
         """
-        # Maintain 4-decimal accuracy
+        # Maintain 2-decimal accuracy
         # Try exponents from 0 to 15 to find smallest valid exponent
-        # Convert to integer amount (multiply by 10)
-        amount = int(round(units * 10))  # Convert to integer# maintain 4-decimal accuracy
+        # Convert to integer amount (multiply by 100)
+        amount = int(round(units * 100))
         if amount <= 16383:
             exponent = 0
         elif amount <= 180214:
@@ -113,7 +111,7 @@ def get_mantissa(units):
             mantissa = amount
         else:
             rhs_sum = sum(int(math.pow(2,14) * math.pow(10, (i - 1))) for i in range(1, exponent + 1))
-            mantissa =  int((amount - rhs_sum) / (math.pow(10, exponent)) + 0.5)  # Round to nearest integer
+            mantissa =  int((amount - rhs_sum) / (math.pow(10, exponent)))  # Round to nearest integer
         return {
             "success": True,
             "message": {
@@ -186,6 +184,8 @@ def encrypt(data: bytes, key: bytes):
 def build_64_bit_token_block(units):
     """Build 64-bit token block."""
     try:
+        
+        issue_date =  datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         def get_class_block():
             return dec_to_bin(token_class, 2)
 
@@ -197,9 +197,9 @@ def build_64_bit_token_block(units):
             return dec_to_bin(rnd, 4)
         
         def get_tid_block():
-            issue_date_time = datetime.now()
-            formatted_time = issue_date_time.strftime("%Y-%m-%d %H:%M:%S")
-            minutes = int((issue_date_time - base_date).total_seconds() // 60)
+            issued_date = datetime.strptime(issue_date, "%Y-%m-%d %H:%M:%S")
+            base_date_time = datetime.strptime(base_date, "%Y-%m-%d %H:%M:%S")
+            minutes = int((issued_date - base_date_time).total_seconds() // 60)
             return dec_to_bin(minutes, 24)
         
         def get_amount_block(exponent, mantissa):
@@ -215,8 +215,6 @@ def build_64_bit_token_block(units):
         exponent = mantissa_result["message"]["exponent"]
         mantissa = mantissa_result["message"]["mantissa"]
         amount_block = get_amount_block(exponent, mantissa)
-        print(f"amount_block: {amount_block}")
-        #print(f"mantissa: {len(mantissa)} bits")
         initial_50_bit_block = build_string(cls, subclass, rnd_block, tid_block, amount_block)
         # CRC Calculation
         hex_str = bin_to_hex(initial_50_bit_block)
@@ -233,8 +231,13 @@ def build_64_bit_token_block(units):
                 "exponent": exponent,
                 "mantissa": mantissa,
                 "amount_block": amount_block,
-                "units": units,
+                "units": float(units),
                 "cls": cls,
+                "base_date":base_date,
+                #"subclass": subclass_val,
+                #"random": rnd_val,
+                #"token_identifier_minutes": tid_minutes,
+                "token_issue_datetime": issue_date,
                 "subclass": subclass,
                 "rnd_block": rnd_block,
                 "tid_block": tid_block,
@@ -292,7 +295,7 @@ def api_encrypt():
     try:
         units_str = request.args.get("units", "0")
         units_float = float(units_str)
-        units = int(units_float * 10) / 10
+        units = int(units_float * 100) / 100
         decoder_key_result = generate_decoder_key()
         if not decoder_key_result["success"]:
             return jsonify({"success": False, "message": decoder_key_result["message"]}), 500
