@@ -184,8 +184,7 @@ def encrypt(data: bytes, key: bytes):
 def build_64_bit_token_block(units):
     """Build 64-bit token block."""
     try:
-        
-        issue_date =  datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        issue_date =  (datetime.now()+ timedelta(days=367)).strftime("%Y-%m-%d %H:%M:%S")
         def get_class_block():
             return dec_to_bin(token_class, 2)
 

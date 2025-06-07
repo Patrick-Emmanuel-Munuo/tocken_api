@@ -17,8 +17,8 @@ CORS(app)
 # Constants and globals
 token_class = 0
 token_sub_class = 0
-base_date = datetime(2012, 1, 1, 0, 0, 0)
-
+base_date = datetime(2022, 1, 1, 0, 0, 0)#.strftime("%Y-%m-%d %H:%M:%S")
+#025-06-07 15:28:00
 key_type = "01"
 supply_group_code = "1234"
 tariff_index = "01"
@@ -207,11 +207,14 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
     if not units_result["success"]:
         raise Exception(units_result["message"])
     units = units_result["message"]
+    token_expired_date = base_date
     result = {
         "subclass": subclass_val,
         "random": rnd_val,
         "token_identifier_minutes": tid_minutes,
         "token_issue_datetime": issue_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "base_date":base_date,
+        "token_expired_date":token_expired_date,
         "amount_exponent": exponent,
         "amount_mantissa": mantissa,
         "units": units,
@@ -227,16 +230,19 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
     if not crc_result["success"]:
         raise Exception(crc_result["message"])
     crc_calc_bin = crc_result["message"].zfill(16)
-
     crc_in_token_bin = decrypted_bin[48:64].zfill(16)
     if crc_calc_bin != crc_in_token_bin:
         raise ValueError("CRC mismatch - invalid token data")
+    
     # Additional validations (optional)
-    now = datetime.utcnow()
+    time_now =  datetime.now()
     token_issue_time = datetime.strptime(result["token_issue_datetime"], "%Y-%m-%d %H:%M:%S")
-    if token_issue_time < base_date or token_issue_time > now + timedelta(days=1):
-        raise ValueError("Token issue date/time is out of valid range")
-
+    # Check if the token is older than 1 year
+    if time_now - token_issue_time > timedelta(days=365):
+        raise ValueError("Token expired")
+    # Check if token is before base date or too far in the future
+    if token_issue_time < base_date or token_issue_time > time_now + timedelta(days=1):
+        raise ValueError("Change meter base date")
     return {
         "success": True,
         "message": result
@@ -246,6 +252,7 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
          "success": False,
          "message": f"Failed to decode units: {str(e)}"
          }
+
 @app.route("/decrypt_token", methods=["GET"])
 def api_decrypt():
     try:
@@ -267,19 +274,19 @@ def api_decrypt():
         return jsonify({
             "success": True,
             "message": {
-                **result["message"] ,
+                #**result["message"] ,
                 "status": "Token successfully decrypted and parsed.",
             }
         }), 200
     except ValueError as ve:
         return jsonify({
             "success": False,
-            "message": f"Validation error: {str(ve)}"
+            "message": f"api_decrypt Validation error: {str(ve)}"
         }), 400
     except Exception as e:
         return jsonify({
             "success": False,
-            "message": f"An error occurred: {str(e)}"
+            "message": f"api_decrypt An error occurred: {str(e)}"
         }), 500
 if __name__ == "__main__":
     app.run(debug = True, port = 1010)
