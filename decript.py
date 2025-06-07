@@ -210,7 +210,6 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
         decrypted_bin = bytes_to_bin_str(enc_result["message"])
         if len(decrypted_bin) != 64:
             raise ValueError("Token block must be exactly 64 bits.")
-        
         subclass = decrypted_bin[0:4]
         rnd_block = decrypted_bin[4:8]
         tid_block = decrypted_bin[8:32]
