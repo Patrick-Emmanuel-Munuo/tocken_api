@@ -14,8 +14,8 @@ app = Flask(__name__)
 CORS(app)
 
 # Constants and globals
-token_class = 0
-token_sub_class = 0
+token_class = 0 # 0 for utility token
+# Base date for TID calculation
 base_date = datetime(2025, 5, 5, 0, 0, 0)
 
 
@@ -87,42 +87,31 @@ def generate_decoder_key():
             "message": f"Decoder key generation failed: {str(e)}"
         }
 
-def encode_mantissa(units):
+def encode_units(units):
     try:
         """
-        Custom 16-bit representation:
-        - 4-bit exponent (0–15) = power of 10
-        - 12-bit mantissa (0–4095)
+        Custom 20-bit representation:
         - 2-decimal precision using units * 100
         """
+        # number bit 23 bits
+        # number after decimal point to 2 decimal places ie .00 to .99 6bits
         # Maintain 2-decimal accuracy
-        # Try exponents from 0 to 15 to find smallest valid exponent
-        # Convert to integer amount (multiply by 100)
-        max_amount = 4095.0  # Maximum value units
-        amount = int(round(units * 100))
-        if amount <= 16383:
-            exponent = 0
-        elif amount <= 180214:
-            exponent = 1
-        elif amount <= 1818524:
-            exponent = 2
-        else:
-            exponent = 3
-        # Calculate mantissa store 12bit 0 - 4095
-        if exponent == 0:
-            mantissa = amount
-        else:
-            mantissa =  int((amount) / (math.pow(10, exponent)))
-        if mantissa > max_amount:
+        max_amount = 65530.0  # Maximum value units
+        if units > max_amount:
             return {
                 "success": False,
                 "message": "units value too large to be represented."
         }
+        number = int(units)
+        decimal = int(round((units - number) * 100))
+        number_bin = dec_to_bin(number,16) #16 bit
+        decimal_bin = dec_to_bin(decimal,7) #7 bit
         return {
             "success": True,
             "message": {
-                "exponent": exponent,
-                "mantissa": mantissa
+                "number": number_bin,
+                "decimal": decimal_bin,
+                "amount_block": number_bin + decimal_bin  # 23 bits
             }
         }
     except Exception as e:
@@ -131,21 +120,25 @@ def encode_mantissa(units):
             "message": f"Mantissa calculation failed: {str(e)}"
         }
 
-def decode_mantissa(packed_bin):
+def decode_units(packed_bin):
     try:
-        if len(packed_bin) != 16:
-            raise ValueError(f"Input binary string length must be 16 bits, got {len(packed_bin)}")
-        # First 4 bits = exponent, last 12 bits = mantissa
-        exponent_bin = packed_bin[:4]
-        mantissa_bin = packed_bin[4:]
-        exponent = int(exponent_bin, 2)
-        mantissa = int(mantissa_bin, 2)
-        # Decode the value
-        amount = mantissa * math.pow(10, exponent)
-        units = round(amount / 100.0, 2)
+        if len(packed_bin) != 23:
+            raise ValueError(f"Input binary string length must be 23 bits, got {len(packed_bin)}")
+        
+        number_bin = packed_bin[:16]  # first 16 bits for integer
+        decimal_bin = packed_bin[16:]  # last 7 bits for decimal
+        
+        number = int(number_bin, 2)
+        decimal = int(decimal_bin, 2)
+        
+        if decimal > 99:
+            raise ValueError(f"Decimal part out of range (0-99), got {decimal}")
+        
+        units = number + decimal / 100.0
+        
         return {
             "success": True,
-            "message": units
+            "message": round(units, 2)
         }
     except Exception as e:
         return {
@@ -215,34 +208,26 @@ def build_64_bit_token_block(units):
         issue_date =  datetime.now()
         def get_class_block():
             return dec_to_bin(token_class, 2)
-
-        def get_subclass_block():
-            return dec_to_bin(token_sub_class, 4)
         
-        def get_rnd_block():
-            rnd = random.randint(0, 15)  # 4-bit random number (0 to 15)
-            return dec_to_bin(rnd, 4)
+        def get_rnd_block(): #4 bits
+            # Generate a random 1-bit number (0 to 1)
+            rnd = random.randint(0, 1)  # 1-bit random number (0 to 1)
+            return dec_to_bin(rnd, 1)
         
-        def get_tid_block():
+        def get_tid_block(): #24 bits
+            #tid = random.randint(0, 16,777,215)  # 24-bit random number (0 to 16,777,215)
             minutes = int((issue_date - base_date).total_seconds() // 60)
             return dec_to_bin(minutes, 24)
-        
-        def get_amount_block(exponent, mantissa):
-            return dec_to_bin(exponent, 2) + dec_to_bin(mantissa, 14)
-        
         cls = get_class_block()
-        subclass = get_subclass_block()
         rnd_block = get_rnd_block()
         tid_block = get_tid_block()
-
-        mantissa_result = encode_mantissa(units)
-        if not mantissa_result["success"]:
-           raise ValueError(mantissa_result["message"]) 
-            #return {"success": False, "message": mantissa_result["message"]}
-        exponent = mantissa_result["message"]["exponent"]
-        mantissa = mantissa_result["message"]["mantissa"]
-        amount_block = get_amount_block(exponent, mantissa)#[:16]
-        initial_50_bit_block = build_string(cls, subclass, rnd_block, tid_block, amount_block)
+        units_result = encode_units(units)
+        if not units_result["success"]:
+           raise ValueError(units_result["message"]) 
+        number = units_result["message"]["number"]
+        decimal = units_result["message"]["decimal"]
+        amount_block = units_result["message"]["amount_block"] #get_amount_block(number, decimal)#[:16]
+        initial_50_bit_block = build_string(cls, rnd_block, tid_block, amount_block)
         # CRC Calculation
         hex_str = bin_to_hex(initial_50_bit_block)
         hex_str = hex_str.zfill(14)  # Pad to 56 bits (14 hex characters)
@@ -252,22 +237,22 @@ def build_64_bit_token_block(units):
         if not crc_result["success"]:
             return {"success": False, "message": crc_result["message"]}
         crc_block = crc_result["message"]
-        token_64_bit_block = build_string(subclass, rnd_block, tid_block, amount_block, crc_block)
+        token_64_bit_block = build_string(rnd_block, tid_block, amount_block, crc_block)
         expired_datetime = issue_date + timedelta(days=365)
         return {
             "success": True,
-            "message": {
-                "exponent": exponent,
-                "mantissa": mantissa,
+            "message": { 
+                "units_number": int(number, 2),
+                "units_decimal": int(decimal, 2) ,
+                #"unit_encoded": units,
                 "amount_block": amount_block,
                 "amount_block_length": len(amount_block),
                 "units": float(units),
-                "units_decode": float(decode_mantissa(amount_block)["message"]),
+                "units_decoded": decode_units(amount_block)["message"],
                 "cls": cls,
                 "issue_datetime": issue_date.strftime("%Y-%m-%d %H:%M:%S"),
                 "expired_datetime": expired_datetime.strftime("%Y-%m-%d %H:%M:%S"),
                 "base_date": base_date.strftime("%Y-%m-%d %H:%M:%S"),
-                "subclass": subclass,
                 "rnd_block": rnd_block,
                 "tid_block": tid_block,
                 "crc_block": crc_block,

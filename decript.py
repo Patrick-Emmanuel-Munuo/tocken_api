@@ -106,25 +106,32 @@ def calculate_crc16(data: bytes, poly=0x1021, init_crc=0xFFFF) -> dict:
             "message": f"CRC16 calculation failed: {str(e)}"
         }
 
-def decode_units(exponent, mantissa):
-    """
-    Reconstructs the original units value from the exponent and mantissa.
-    Assumes encoding was done using:
-        amount =  mantissa * (10 ** exponent)
-        units = amount / 100
-    """
+def decode_units(packed_bin):
     try:
-        amount = mantissa * math.pow(10, exponent)
-        units = round(amount / 100.0, 2)
+        if len(packed_bin) != 23:
+            raise ValueError(f"Input binary string length must be 23 bits, got {len(packed_bin)}")
+        
+        number_bin = packed_bin[:16]  # first 16 bits for integer
+        decimal_bin = packed_bin[16:]  # last 7 bits for decimal
+        
+        number = int(number_bin, 2)
+        decimal = int(decimal_bin, 2)
+        
+        if decimal > 99:
+            raise ValueError(f"Decimal part out of range (0-99), got {decimal}")
+        
+        units = number + decimal / 100.0
+        
         return {
             "success": True,
-            "message": units
+            "message": round(units, 2)
         }
     except Exception as e:
         return {
             "success": False,
-            "message": f"Failed to decode units: {str(e)}"
+            "message": f"Decoding failed: {str(e)}"
         }
+
 
 def build_string(*args):
     """Concatenate strings."""
@@ -253,30 +260,25 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
         decrypted_bin = bytes_to_bin_str(enc_result["message"])
         if len(decrypted_bin) != 64:
             raise ValueError("Token block must be exactly 64 bits.")
-        subclass = decrypted_bin[0:4]
-        rnd_block = decrypted_bin[4:8]
-        tid_block = decrypted_bin[8:32]
-        amount_exponent = decrypted_bin[32:34]
-        amount_mantissa = decrypted_bin[34:48]
+        #cls = decrypted_bin[0:2]#0,1
+        rnd_block = decrypted_bin[0:2]#0,1
+        tid_block = decrypted_bin[2:25] #1,
+        amount_block = decrypted_bin[25:48]
         crc_block = decrypted_bin[48:64]
 
-        subclass_val = int(subclass, 2)
         rnd_val = int(rnd_block, 2)
         tid_minutes = int(tid_block, 2)
-        exponent = int(amount_exponent, 2)
-        mantissa = int(amount_mantissa, 2)
+        # Units decoding
+        units_result = decode_units(amount_block)
+        if not units_result["success"]:
+            raise Exception(units_result["message"])
+        units = units_result["message"]
         crc_val = int(crc_block, 2)
 
         # Set base date and compute time-related values
         issue_time = base_date + timedelta(minutes=tid_minutes)
         token_expired_date = issue_time + timedelta(days=365)
         time_now = datetime.now()
-
-        # Units decoding
-        units_result = decode_units(exponent, mantissa)
-        if not units_result["success"]:
-            raise Exception(units_result["message"])
-        units = units_result["message"]
 
         # CRC validation
         data_bin = decrypted_bin[:48]
@@ -287,8 +289,6 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
             raise Exception(crc_result["message"])
         crc_calc_bin = crc_result["message"].zfill(16)
         crc_in_token_bin = decrypted_bin[48:64].zfill(16)
-        #print(f"CRC in token : {crc_in_token_bin}")
-        #print(f"calculated CRC: {crc_calc_bin}")
 
         if crc_calc_bin != crc_in_token_bin:
             raise ValueError("CRC mismatch - invalid token data")
@@ -299,14 +299,11 @@ def decrypt_and_parse_token(encrypted_token_bin: str, decoding_key_bin: str):
         if issue_time < base_date or issue_time > time_now + timedelta(days=1):
             raise ValueError("Change meter base date")
         result = {
-            "subclass": subclass_val,
             "random": rnd_val,
             "identifier_minutes": tid_minutes,
             "issue_datetime": issue_time.strftime("%Y-%m-%d %H:%M:%S"),
             "base_date": base_date.strftime("%Y-%m-%d %H:%M:%S"),
             "expired_date": token_expired_date.strftime("%Y-%m-%d %H:%M:%S"),
-            "amount_exponent": exponent,
-            "amount_mantissa": mantissa,
             "units": float(units),
             "crc": crc_val,
         }
