@@ -210,17 +210,17 @@ def build_64_bit_token_block(units):
             return dec_to_bin(token_class, 2)
         
         def get_rnd_block(): #4 bits
-            # Generate a random 1-bit number (0 to 1)
-            rnd = random.randint(0, 1)  # 1-bit random number (0 to 1)
-            return dec_to_bin(rnd, 1)
+            # Generate a random 1-bit number (0 to 7)
+            rnd = random.randint(0,7 )  # 1-bit random number (0 to 7)
+            return dec_to_bin(rnd, 3)
         
         def get_tid_block(): #24 bits
             #tid = random.randint(0, 16,777,215)  # 24-bit random number (0 to 16,777,215)
             minutes = int((issue_date - base_date).total_seconds() // 60)
-            return dec_to_bin(minutes, 24)
+            return dec_to_bin(minutes, 22)
         cls = get_class_block()
         rnd_block = get_rnd_block()
-        tid_block = get_tid_block()
+        tid_block = get_tid_block()[:22]
         units_result = encode_units(units)
         if not units_result["success"]:
            raise ValueError(units_result["message"]) 
@@ -310,7 +310,7 @@ def process_token(token_block_bin: str, decoding_key_bin: str):
         if not trans_result["success"]:
             return {"success": False, "message": trans_result["message"]}
         final_66_bit_token = trans_result["message"]
-        print(f"Final 66-bit token: {final_66_bit_token}")
+        #print(f"Final 66-bit token: {final_66_bit_token}")
         token_number = int(final_66_bit_token, 2)
         token_number_str = str(token_number).zfill(20)
         token_parts = [token_number_str[i:i + 4] for i in range(0, len(token_number_str), 4)]
