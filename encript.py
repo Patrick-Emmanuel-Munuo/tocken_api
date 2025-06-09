@@ -96,12 +96,18 @@ def encode_units(units):
         # number bit 23 bits
         # number after decimal point to 2 decimal places ie .00 to .99 6bits
         # Maintain 2-decimal accuracy
-        max_amount = 65530.0  # Maximum value units
+        max_amount = 65530.0  # Maximum value units 6,553,000
+        if units < 0:
+            return {
+                "success": False,
+                "message": "units value contain Negative value are not supported."
+        }    
         if units > max_amount:
             return {
                 "success": False,
                 "message": "units value too large to be represented."
         }
+        reduced = units*100
         number = int(units)
         decimal = int(round((units - number) * 100))
         number_bin = dec_to_bin(number,16) #16 bit
