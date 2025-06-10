@@ -18,18 +18,6 @@ token_class = 0 # 0 for utility token
 # Base date for TID calculation
 base_date = datetime(2025, 5, 5, 0, 0, 0)
 
-
-"""
-For 16 bytes (128 bits) key:
-
-key_type	8	supports up to 255
-supply_group_code	16	supports up to 65535
-tariff_index	8	supports up to 255
-key_revision_number	8	supports up to 255
-decoder_reference_number (DRN)	64	use 64 bits (max ~1.8e19)
-Total	128	Perfect for 16 bytes
-"""
-
 def dec_to_bin(decimal, length):
     """Convert decimal number to binary string padded to length."""
     return bin(decimal)[2:].zfill(length)
@@ -59,27 +47,30 @@ def generate_decoder_key():
         tariff_index = 3
         key_revision_number = 0
         decoder_reference_number = 1234567890
-        secret_key = "12345"  # 16 hex chars = 64 bits
-        def convert(number_str, bit_length):
-            number_int = int(number_str)
+        secret_key = 12345  # assumed decimal string for 24 bits
+        additional_seed = 67890  # new 64-bit padding to reach 192 bits total
+
+        def convert(number, bit_length):
+            number_int = int(number)
             return format(number_int, f'0{bit_length}b')
-        key_type_bin = convert(key_type, 8)  # Key type is 8 bits
-        supply_group_bin = convert(supply_group_code, 16) # Supply group code is 16 bits
-        tariff_index_bin = convert(tariff_index, 8) # Tariff index is 8 bits
-        key_revision_bin = convert(key_revision_number, 8) # Key revision number is 8 bits
-        # Decoder reference number (DRN) is 64 bits
-        drn_bin = convert(decoder_reference_number, 64) # 64 bits (max ~1.8e19)v
-        secret_key_bin = convert(secret_key, 24)       # 24 bits
-        # Combine all parts into a 128-bit binary string
 
-        data_block_bin = key_type_bin + supply_group_bin + tariff_index_bin + key_revision_bin + drn_bin + secret_key_bin
+        key_type_bin = convert(key_type, 8)             # 8 bits
+        supply_group_bin = convert(supply_group_code, 16)  # 16 bits
+        tariff_index_bin = convert(tariff_index, 8)        # 8 bits
+        key_revision_bin = convert(key_revision_number, 8) # 8 bits
+        drn_bin = convert(decoder_reference_number, 64)    # 64 bits
+        secret_key_bin = convert(secret_key, 24)           # 24 bits
+        additional_bin = convert(additional_seed, 64)      # 64 bits padding
 
-        if len(data_block_bin) != 128:
-            raise ValueError(f"Generated decoder key is not 64 bits: got {len(data_block_bin)} bits")
-        key_128_bin = data_block_bin # + data_block_bin
+        data_block_bin = (key_type_bin + supply_group_bin + tariff_index_bin + key_revision_bin +
+                          drn_bin + secret_key_bin + additional_bin)
+
+        if len(data_block_bin) != 192:
+            raise ValueError(f"Generated decoder key is not 192 bits: got {len(data_block_bin)} bits")
+
         return {
             "success": True,
-            "message": key_128_bin
+            "message": data_block_bin
         }
     except Exception as e:
         return {
@@ -251,18 +242,18 @@ def build_64_bit_token_block(units):
                 "units_number": int(number, 2),
                 "units_decimal": int(decimal, 2) ,
                 #"unit_encoded": units,
-                "amount_block": amount_block,
-                "amount_block_length": len(amount_block),
+                #"amount_block": amount_block,
+                #"amount_block_length": len(amount_block),
                 "units": float(units),
                 "units_decoded": decode_units(amount_block)["message"],
-                "cls": cls,
+                "cls":  int(cls, 2) ,
                 "issue_datetime": issue_date.strftime("%Y-%m-%d %H:%M:%S"),
                 "expired_datetime": expired_datetime.strftime("%Y-%m-%d %H:%M:%S"),
                 "base_date": base_date.strftime("%Y-%m-%d %H:%M:%S"),
-                "rnd_block": rnd_block,
-                "tid_block": tid_block,
-                "crc_block": crc_block,
-                "crc_block": bin_to_hex(crc_block),
+                "rnd_block": int(rnd_block, 2) ,
+                #"tid_block": tid_block,
+                "crc_block": int(crc_block, 2),
+                #"crc_block": bin_to_hex(crc_block),
                 "token_64_bit_block": token_64_bit_block
             }
         }
@@ -359,7 +350,8 @@ def api_encrypt():
             "success": True,
             "message": {
                 "utility_token": utility_token["message"],
-                **token_data["message"]
+                **token_data["message"],
+                #"encoder_key_bin":decoder_key_bin
             }
             }), 200
     except ValueError as ve:

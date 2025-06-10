@@ -16,14 +16,8 @@ CORS(app)
 
 # Constants and globals
 token_class = 0
-token_sub_class = 0
 base_date = datetime(2025, 5, 5, 0, 0, 0)
 #025-06-07 15:28:00
-key_type = "01"
-supply_group_code = "1234"
-tariff_index = "01"
-key_revision_number = "00"
-decoder_reference_number = "1234567890"  # Decoder reference number (DRN)
 
 
 def dec_to_bin(decimal, length):
@@ -57,27 +51,30 @@ def generate_decoder_key():
         tariff_index = 3
         key_revision_number = 0
         decoder_reference_number = 1234567890
-        secret_key = "12345"  # 16 hex chars = 64 bits
-        def convert(number_str, bit_length):
-            number_int = int(number_str)
+        secret_key = "12345"  # assumed decimal string for 24 bits
+        additional_seed = 67890  # new 64-bit padding to reach 192 bits total
+
+        def convert(number, bit_length):
+            number_int = int(number)
             return format(number_int, f'0{bit_length}b')
-        key_type_bin = convert(key_type, 8)  # Key type is 8 bits
-        supply_group_bin = convert(supply_group_code, 16) # Supply group code is 16 bits
-        tariff_index_bin = convert(tariff_index, 8) # Tariff index is 8 bits
-        key_revision_bin = convert(key_revision_number, 8) # Key revision number is 8 bits
-        # Decoder reference number (DRN) is 64 bits
-        drn_bin = convert(decoder_reference_number, 64) # 64 bits (max ~1.8e19)v
-        secret_key_bin = convert(secret_key, 24)       # 24 bits
-        # Combine all parts into a 128-bit binary string
 
-        data_block_bin = key_type_bin + supply_group_bin + tariff_index_bin + key_revision_bin + drn_bin + secret_key_bin
+        key_type_bin = convert(key_type, 8)             # 8 bits
+        supply_group_bin = convert(supply_group_code, 16)  # 16 bits
+        tariff_index_bin = convert(tariff_index, 8)        # 8 bits
+        key_revision_bin = convert(key_revision_number, 8) # 8 bits
+        drn_bin = convert(decoder_reference_number, 64)    # 64 bits
+        secret_key_bin = convert(secret_key, 24)           # 24 bits
+        additional_bin = convert(additional_seed, 64)      # 64 bits padding
 
-        if len(data_block_bin) != 128:
-            raise ValueError(f"Generated decoder key is not 64 bits: got {len(data_block_bin)} bits")
-        key_128_bin = data_block_bin # + data_block_bin
+        data_block_bin = (key_type_bin + supply_group_bin + tariff_index_bin + key_revision_bin +
+                          drn_bin + secret_key_bin + additional_bin)
+
+        if len(data_block_bin) != 192:
+            raise ValueError(f"Generated decoder key is not 192 bits: got {len(data_block_bin)} bits")
+
         return {
             "success": True,
-            "message": key_128_bin
+            "message": data_block_bin
         }
     except Exception as e:
         return {
@@ -341,8 +338,8 @@ def api_decrypt():
         decoding_key_bin = decoder_key_result["message"]
         key_bytes = bin_str_to_bytes(decoding_key_bin)
         
-        if len(key_bytes) != 16:
-            return jsonify({"success": False, "message": "Decoding key length invalid (expected 16 bytes)."}), 500
+        if len(key_bytes) not in (16, 24):
+            return jsonify({"success": False, "message": "Decoding key length invalid (expected 16 or 24  bytes)."}), 500
 
         # Decrypt and parse token
         result = decrypt_and_parse_token(token_bin, decoding_key_bin)
