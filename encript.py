@@ -254,7 +254,7 @@ def build_64_bit_token_block(units):
                 #"tid_block": tid_block,
                 "crc_block": int(crc_block, 2),
                 #"crc_block": bin_to_hex(crc_block),
-                "token_64_bit_block": token_64_bit_block
+                #"token_64_bit_block": token_64_bit_block
             }
         }
     except Exception as e:
