@@ -1,91 +1,80 @@
 import requests
 import random
 import time
-from datetime import datetime
+import json
 
 API_URL = "http://127.0.0.1:1010/decrypt_token"
-LOG_FILE = "new_token_test_log.txt"
-SUMMARY_EVERY = 100  # print summary every 100 requests
-DELAY_SECONDS = 0.1  # delay between requests
+TOKENS_JSON_FILE = "C:\\Users\\Eng VarTrick\\Documents\\test_tokens.json"  # Windows path
+LOG_TXT_FILE = "C:\\Users\\Eng VarTrick\\Documents\\test_log.txt"
+
 
 def generate_random_20_digit_token():
     return ''.join(str(random.randint(0, 9)) for _ in range(20))
 
-
-def log_result(log_file, token, status_code, response_text, elapsed_ms):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    log_file.write(f"[{timestamp}] Token: {token} | Status: {status_code} | Time: {elapsed_ms:.2f} ms\n")
-    log_file.write(f"Response: {response_text}\n")
-    log_file.write("-" * 80 + "\n")
-    log_file.flush()
-
-
-def test_api_call(token):
-    params = {"token": token}
-    start = time.perf_counter()
+def send_request(token):
     try:
-        response = requests.get(API_URL, params=params)
-        elapsed_ms = (time.perf_counter() - start) * 1000
-        return response.status_code, response.text, elapsed_ms
+        params = {"token": token}
+        response = requests.get(API_URL, params=params, timeout=5)
+        #response.raise_for_status()
+        data = response.json()
+        return data.get("success", False)
     except Exception as e:
-        elapsed_ms = (time.perf_counter() - start) * 1000
-        return None, str(e), elapsed_ms
+        print(f"API request error for token {token}: {e}")
+        return False
 
+def save_tokens_to_json(tokens):
+    try:
+        with open(TOKENS_JSON_FILE, 'w') as f:
+            json.dump(tokens, f, indent=2)
+    except Exception as e:
+        print(f"Error saving tokens JSON: {e}")
 
-def run_infinite_test():
-    total_tests = 0
-    total_time = 0
+def append_log_to_txt(log_text):
+    try:
+        with open(LOG_TXT_FILE, 'a') as f:
+            f.write(log_text + "\n")
+    except Exception as e:
+        print(f"Error writing to log file: {e}")
+
+def run_test():
+    total_requests = 0
     pass_count = 0
     fail_count = 0
+    all_tokens = []  # only tokens (strings)
 
-    with open(LOG_FILE, "a") as log_file:
-        log_file.write(f"\n{'='*20} Test started at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {'='*20}\n\n")
-        print("Starting infinite token testing... Press Ctrl+C to stop.")
-        try:
-            while True:
-                token = generate_random_20_digit_token()
-                status_code, response_text, elapsed_ms = test_api_call(token)
-                log_result(log_file, token, status_code, response_text, elapsed_ms)
+    while True:
+        start_time = time.time()
 
-                total_tests += 1
-                total_time += elapsed_ms
+        tokens = [generate_random_20_digit_token() for _ in range(20)]
 
-                # Count pass/fail
-                if status_code == 200:
-                    pass_count += 1
-                else:
-                    fail_count += 1
+        for token in tokens:
+            result = send_request(token)
+            all_tokens.append(token)
 
-                if total_tests % SUMMARY_EVERY == 0:
-                    avg_time = total_time / total_tests
-                    summary_status = "PASS" if fail_count == 0 else "FAIL"
-                    summary = (
-                        f"[{datetime.now().strftime('%H:%M:%S')}] Tests run: {total_tests}, "
-                        f"Passed: {pass_count}, Failed: {fail_count}, "
-                        f"Avg response time: {avg_time:.2f} ms, Status: {summary_status}"
-                    )
-                    print(summary)
-                    log_file.write(summary + "\n" + ("=" * 80) + "\n")
-                    log_file.flush()
+            if result:
+                pass_count += 1
+            else:
+                fail_count += 1
 
-                    # reset pass/fail counts for the next batch
-                    pass_count = 0
-                    fail_count = 0
+        total_requests += len(tokens)
 
-                time.sleep(DELAY_SECONDS)
-        except KeyboardInterrupt:
-            avg_time = total_time / total_tests if total_tests else 0
-            print("\nTest interrupted by user.")
-            final_summary = (
-                f"Total tests run: {total_tests}\n"
-                f"Average response time: {avg_time:.2f} ms\n"
-                f"Test ended at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
-                + "=" * 80
+        end_time = time.time()
+        time_taken = end_time - start_time
+
+        # Save tokens JSON after every batch
+        save_tokens_to_json(all_tokens)
+
+        # Log summary every 1000 requests
+        if total_requests % 1000 == 0:
+            log_text = (
+                f"==== Summary after {total_requests} requests ====\n"
+                f"Pass: {pass_count}\n"
+                f"Fail: {fail_count}\n"
+                f"Time for last batch: {time_taken:.2f} seconds\n"
+                f"----------------------------------------"
             )
-            print(final_summary)
-            log_file.write("\n" + final_summary + "\n")
-            log_file.flush()
-
+            print(log_text)
+            append_log_to_txt(log_text)
 
 if __name__ == "__main__":
-    run_infinite_test()
+    run_test()
